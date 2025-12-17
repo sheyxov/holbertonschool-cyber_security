@@ -1,2 +1,2 @@
 #!/bin/bash
-. /etc/os-release && echo $ID
+lsb_release -i | cut -f2
