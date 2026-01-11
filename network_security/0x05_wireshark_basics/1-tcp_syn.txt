@@ -1,1 +1,1 @@
-tcp[0xd]&18=2
+tcp.flags.syn == 1
