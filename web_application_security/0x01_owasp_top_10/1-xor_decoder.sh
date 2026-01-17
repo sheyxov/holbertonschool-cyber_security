@@ -1,28 +1,23 @@
 #!/bin/bash
-#
-# Decode WebSphere XOR encoded strings
-# Usage: ./1-xor_decoder.sh {xor}ENCODED
-#
+# Decode IBM WebSphere XOR encoded strings
 
-encoded="$1"
-xor_key=95
+hash="$1"
 
-# Remove {xor} prefix
-cleaned=$(echo "$encoded" | sed 's/^{xor}//')
+clean_hash="${hash#\{xor\}}"
 
-# Base64 decode
-decoded=$(echo "$cleaned" | base64 -d 2>/dev/null)
+decoded="$(printf "%s" "$clean_hash" | base64 -d)"
 
-# XOR decode
-result=""
-i=0
+key="$(printf "%s" "$decoded" | od -An -t u1 | awk 'NR==1 { print $1 }')"
 
-while [ $i -lt ${#decoded} ]
-do
-	char=$(printf '%d' "'${decoded:$i:1}")
-	xored=$((char ^ xor_key))
-	result="$result$(printf \\$(printf '%03o' "$xored"))"
-	i=$((i + 1))
-done
-
-echo "$result"
+printf "%s" "$decoded" \
+| od -An -t u1 \
+| awk '
+NR==1 { next }
+{
+    for (i = 1; i <= NF; i++)
+    {
+        printf "%c", ($i ^ key)
+    }
+}
+'
+printf "\n"
