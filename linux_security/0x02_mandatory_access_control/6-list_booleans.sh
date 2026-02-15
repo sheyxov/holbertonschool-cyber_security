@@ -1,2 +1,2 @@
 #!/bin/bash
-getsebool -a | grep boolean
+semanage boolean -l
