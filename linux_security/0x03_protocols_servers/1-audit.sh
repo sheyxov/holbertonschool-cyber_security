@@ -1,2 +1,2 @@
 #!/bin/bash
-sudo sshd -T | grep -v -E '^(port|protocol|listenaddress)'
+grep -Ev '^\s*#|^\s*$' /etc/ssh/sshd_config
