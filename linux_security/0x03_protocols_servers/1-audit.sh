@@ -1,3 +1,2 @@
 #!/bin/bash
-sudo sshd -T | grep -v -E '^(port|protocol|listenaddress)'
-
+sudo sshd -T | grep -vE '^(port|protocol|listenaddress)'
