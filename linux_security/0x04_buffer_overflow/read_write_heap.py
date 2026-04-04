@@ -1,4 +1,8 @@
 #!/usr/bin/python3
+"""
+Reads a process heap and replaces a given string.
+"""
+
 import sys
 
 if len(sys.argv) != 4:
