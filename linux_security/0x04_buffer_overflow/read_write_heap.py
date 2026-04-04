@@ -1,53 +1,80 @@
 #!/usr/bin/python3
 """
-Reads a process heap and replaces a given string.
+Reads a process heap and replaces a given string inside it.
 """
 
 import sys
 
-if len(sys.argv) != 4:
+
+def usage():
+    print("Usage: read_write_heap.py pid search_string replace_string")
     sys.exit(1)
 
-pid = sys.argv[1]
-search_string = sys.argv[2].encode()
-replace_string = sys.argv[3].encode()
 
-if len(replace_string) > len(search_string):
-    sys.exit(1)
+def find_heap_range(pid):
+    heap_start = None
+    heap_end = None
 
-maps_path = f"/proc/{pid}/maps"
-mem_path = f"/proc/{pid}/mem"
+    try:
+        with open(f"/proc/{pid}/maps", "r") as f:
+            for line in f:
+                if "[heap]" in line:
+                    addr_range = line.split(" ")[0]
+                    start, end = addr_range.split("-")
+                    heap_start = int(start, 16)
+                    heap_end = int(end, 16)
+                    break
+    except Exception:
+        return None, None
 
-heap_start = None
-heap_end = None
+    return heap_start, heap_end
 
-with open(maps_path, "r") as maps_file:
-    for line in maps_file:
-        if "[heap]" in line:
-            addr_range = line.split(" ")[0]
-            start, end = addr_range.split("-")
-            heap_start = int(start, 16)
-            heap_end = int(end, 16)
-            break
 
-if heap_start is None:
-    sys.exit(1)
+def main():
+    if len(sys.argv) != 4:
+        usage()
 
-with open(mem_path, "rb+") as mem_file:
-    mem_file.seek(heap_start)
-    heap_data = mem_file.read(heap_end - heap_start)
+    pid = sys.argv[1]
+    search_string = sys.argv[2].encode()
+    replace_string = sys.argv[3].encode()
 
-    offset = heap_data.find(search_string)
-
-    if offset == -1:
+    if len(replace_string) > len(search_string):
+        print("Error")
         sys.exit(1)
 
-    addr = heap_start + offset
+    heap_start, heap_end = find_heap_range(pid)
 
-    mem_file.seek(addr)
-    mem_file.write(replace_string)
+    if heap_start is None:
+        print("Error")
+        sys.exit(1)
 
-    padding = b"\x00" * (len(search_string) - len(replace_string))
-    mem_file.write(padding)
+    try:
+        with open(f"/proc/{pid}/mem", "rb+") as mem_file:
+            mem_file.seek(heap_start)
+            heap_size = heap_end - heap_start
+            heap_data = mem_file.read(heap_size)
 
-print("SUCCESS!")
+            offset = heap_data.find(search_string)
+
+            if offset == -1:
+                print("Error")
+                sys.exit(1)
+
+            addr = heap_start + offset
+
+            mem_file.seek(addr)
+            mem_file.write(replace_string)
+
+            # padding if needed
+            padding = b"\x00" * (len(search_string) - len(replace_string))
+            mem_file.write(padding)
+
+    except Exception:
+        print("Error")
+        sys.exit(1)
+
+    print("SUCCESS!")
+
+
+if __name__ == "__main__":
+    main()
