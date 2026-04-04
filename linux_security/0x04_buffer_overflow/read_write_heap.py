@@ -17,7 +17,7 @@ def print_usage_error():
 def main():
     """
     Əsas funksiya: Arqumentləri yoxlayır, /proc/[pid]/maps faylından
-    heap ünvanlarını tapır və /proc/[pid]/mem faylında dəyişiklik edir.
+    heap ünvanlarını tapır və /proc/[pid]/mem faylını dəyişir.
     """
     if len(sys.argv) != 4:
         print_usage_error()
@@ -29,7 +29,6 @@ def main():
     maps_file = "/proc/{}/maps".format(pid)
     mem_file = "/proc/{}/mem".format(pid)
 
-    # Prosesin mövcudluğunu və icazələri yoxlayırıq
     if not os.path.exists(maps_file) or not os.path.exists(mem_file):
         print("Error: Process doesn't exist or permission denied.")
         sys.exit(1)
@@ -42,7 +41,6 @@ def main():
         with open(maps_file, 'r') as m_file:
             for line in m_file:
                 if "[heap]" in line:
-                    # Sətir formatı: 01fa9000-01fcb000 rw-p 00000000 00:00 0 [heap]
                     address_range = line.split(' ')[0]
                     start_str, end_str = address_range.split('-')
                     heap_start = int(start_str, 16)
@@ -61,21 +59,19 @@ def main():
         with open(mem_file, 'r+b') as mem:
             mem.seek(heap_start)
             heap_size = heap_end - heap_start
-            # Bütün heap datasını oxuyuruq
             heap_data = mem.read(heap_size)
 
             search_bytes = search_string.encode('ascii')
             replace_bytes = replace_string.encode('ascii')
 
-            # Köhnə string-in heap daxilindəki offset (mövqe) dəyərini tapırıq
+            # Köhnə string-in heap daxilindəki mövqeyini tapırıq
             offset = heap_data.find(search_bytes)
-            
+
             if offset == -1:
-                print("Error: String '{}' not found in heap.".format(search_string))
+                print("Error: String '{}' not found".format(search_string))
                 sys.exit(1)
 
-            # C string-ləri null-terminated olduğu üçün, əgər yeni string
-            # köhnəsindən qısadırsa, qalan hissəni null baytlarla (\x00) doldururuq
+            # Əgər yeni string qısadırsa, qalan hissəni null baytla doldururuq
             if len(replace_bytes) < len(search_bytes):
                 padding = len(search_bytes) - len(replace_bytes)
                 replace_bytes += b'\x00' * padding
@@ -83,7 +79,7 @@ def main():
             # Dəqiq ünvana gedib yeni string-i yazırıq
             mem.seek(heap_start + offset)
             mem.write(replace_bytes)
-            
+
     except Exception as e:
         print("Error accessing memory: {}".format(e))
         sys.exit(1)
