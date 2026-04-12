@@ -1,2 +1,4 @@
 #!/bin/bash
-cut -d' ' -f1 $1 | sort | uniq -c | sort -nr | head -n1 | awk '{print $1}'
+file=$1
+[ -z "$file" ] && file=logs.txt
+cut -d' ' -f1 $file | sort | uniq -c | sort -nr | head -n1 | awk '{print $1}'
