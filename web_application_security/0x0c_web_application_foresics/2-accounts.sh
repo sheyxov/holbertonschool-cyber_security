@@ -1,20 +1,15 @@
 #!/bin/bash
-
-tail -n 1000 $1 | \
-grep "Failed password\|Accepted password" | \
-awk '{
-    for(i=1;i<=NF;i++){
-        if($i=="for"){
-            if($(i+1)=="invalid"){
-                print $(i+3)
-            } else {
-                print $(i+1)
-            }
-        }
+awk '
+/Failed password/ {fail[$9]++}
+/Accepted password/ {success[$9]++}
+END {
+  max = 0
+  user = ""
+  for (u in success) {
+    if (fail[u] > max) {
+      max = fail[u]
+      user = u
     }
-}' | \
-sort | \
-uniq -c | \
-sort -nr | \
-head -n 1 | \
-awk '{print $2}'
+  }
+  if (user != "") print user
+}' auth.log
